@@ -52,6 +52,9 @@ const chugataSpeed = (q) => { const m = /総重量(\d+)kg・(?:最大)?積載(\d
       if (!/　最高速度は？$/.test(P.q) || /km\/h|法定速度|第\d+条/.test(P.q)) why.push("問いの言い方がちがう");
       if (/けん引/.test(P.q) && /kg/.test(P.q) && k.id !== "kenin-seikatsu" && `${keninSpeed(P.q)}km/h` !== P.ans) why.push("けん引の重さと答えが合わない");
       if (/中型(トラック|の貨物)/.test(P.q) && /総重量/.test(P.q) && `${chugataSpeed(P.q)}km/h` !== P.ans) why.push("中型の重さと答えが合わない");
+      // 第27条は往復が分離された本線車道だけ（分離されていない本線車道は第27条の2・第11条で一般道路。CodeRabbit hotei-sokudo#1）
+      if (k.col === "kosoku" && P.media !== "高速道路（往復が分離）") why.push("高速道路なのに往復の分離が書いていない");
+      if (k.col !== "kosoku" && (/高速自動車国道の本線|高速道路の本線/.test(P.q) || /分離/.test(P.media))) why.push("一般道路の問題に高速道路の本線が出る");
       if (k.lv === 0 && di.filter((d) => d === 1).length > 1) why.push("やさしいのに、となりの速度が2つまじる");
       if (k.lv === 2 && !di.includes(1)) why.push("むずかしいのに、となりの速度が無い");
       if (!P.src.length || P.src.some((x) => !Array.isArray(x) || !/^https:\/\/laws\.e-gov\.go\.jp\//.test(x[1]))) why.push("出典が無い");

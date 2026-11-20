@@ -30,14 +30,14 @@
   const GRP_WHY = {
     ippan: "第11条：一般道路を走る自動車は、中央線・車両通行帯がある道や往復が分離された道などは60km/h、それ以外の道は30km/hです。",
     gentsuki: "第11条：原動機付自転車が一般道路を走るときは、道のようすにかかわらず30km/hです。",
-    kosoku: "第27条：高速自動車国道の本線車道では、車の種類によって100km/h・90km/h・80km/hに分かれます。",
+    kosoku: "第27条：往復が分離された高速自動車国道の本線車道では、車の種類によって100km/h・90km/h・80km/hに分かれます。往復が分離されていない本線車道（第27条の2）は第11条の一般道路です。",
     tokurei: "第12条：他の車をけん引するときや、緊急自動車が一般道路を走るときは、特例の速度になります。",
   };
 
   const ri = (R, a, b) => a + Math.floor(R() * (b - a + 1));
   function shuffle(R, a) { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = ri(R, 0, i); [b[i], b[j]] = [b[j], b[i]]; } return b; }
   function pickN(R, a, n) { return shuffle(R, a).slice(0, n); }
-  const MEDIA = { ippan: "一般道路", kosoku: "高速道路" };
+  const MEDIA = { ippan: "一般道路", kosoku: "高速道路（往復が分離）" };
 
   // 速度の選び肢：やさしいは3つ、ふつう・むずかしいは4つ。やさしいは答えのとなりを1つまでにする。むずかしいは答えのとなりを必ず入れる
   function distract(R, a, lv) {
@@ -55,6 +55,9 @@
   }
   const K = (id, lv, sp, grp, col, src, name, look, key, why, sit) => {
     const a = LEVELS.indexOf(sp);
+    // 第27条の「本線車道」は、往復が分離されていない本線車道（第27条の2）を除く（第11条のかっこ書き）。
+    // 高速道路の問題は、問いの上の帯（MEDIA）に「往復が分離」を出して、第27条が当てはまる道だとはっきりさせる（CodeRabbit hotei-sokudo#1。
+    // 問いの文に足すと1行60字を超える）
     return { id, lv, a, ans: sp, grp, col, name, look, key, why, src: [src], make: ask(a, col, sit) };
   };
 
