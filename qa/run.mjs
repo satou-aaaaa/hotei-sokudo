@@ -15,7 +15,7 @@ import { checkDepth } from "./depth-check.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const results = [];
 const check = (name, ok, detail = "") => results.push({ name, ok: !!ok, detail: String(detail).slice(0, 400) });
-const firstClose = async (q) => { if (await q.locator("#howto[open]").count()) await q.click("#howto-ok"); if (await q.locator("#core-coach").count()) { await q.evaluate(() => Core.coach.leave()); await q.waitForTimeout(100); } }; // はじめての練習の吹き出しをやめてホームへ（sync-template の migrateFirstQa が足した）
+const firstClose = async (q) => { if (await q.locator("#howto[open]").count()) await q.click("#howto-ok"); if (await q.evaluate(() => !!(window.Core && Core.coach && Core.coach.active()))) { await q.evaluate(() => { Core.coach.leave(); scrollTo(0, 0); }); await q.waitForTimeout(100); } }; // はじめての練習の吹き出しをやめてホームへ（sync-template の migrateFirstQa が足した）
 const G = createRequire(import.meta.url)(path.join(root, "data.js"));
 
 const PINS = "taigata-kamotsu:1:3.2,gentsuki-chuo:0:4.3,seikatsu:1:0.2.6,gentsuki-seikatsu:0:4.5.3,shasen:0:4.5.6,trailer-ippan:2:4.6.1,tokushu-kosoku:0:3.5.0,sanrin:0:5.0.6;futsu-chuo:1:1.0,bunri:0:1.0,junchu-kosoku:0:5.2.0,kinkyu-ippan:1:2.5.1,chugata-omo:1:4.0.3,kenin30:2:0.2.3,chugata-jin:0:5.1.3,ogata-bike:0:5.4.1;bike-kosoku:0:2.0,futsu-chuo:0:1.6,gentsuki-seikatsu:2:0.6.4,bunri-gentsuki:0:3.4.5,kinkyu-kosoku:1:5.0.3,gentsuki-kenin:1:1.2.5,kenin40:2:3.0.6,chugata-jin:1:5.3.2"; // 過去の日の問題の印（変わったら過去の日の問題が変わった印。種類・言い方は足すだけでも変わる）
