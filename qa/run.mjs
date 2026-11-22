@@ -15,6 +15,7 @@ import { checkDepth } from "./depth-check.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const results = [];
 const check = (name, ok, detail = "") => results.push({ name, ok: !!ok, detail: String(detail).slice(0, 400) });
+const firstClose = async (q) => { if (await q.locator("#howto[open]").count()) await q.click("#howto-ok"); if (await q.locator("#core-coach").count()) { await q.evaluate(() => Core.coach.leave()); await q.waitForTimeout(100); } }; // はじめての練習の吹き出しをやめてホームへ（sync-template の migrateFirstQa が足した）
 const G = createRequire(import.meta.url)(path.join(root, "data.js"));
 
 const PINS = "taigata-kamotsu:1:3.2,gentsuki-chuo:0:4.3,seikatsu:1:0.2.6,gentsuki-seikatsu:0:4.5.3,shasen:0:4.5.6,trailer-ippan:2:4.6.1,tokushu-kosoku:0:3.5.0,sanrin:0:5.0.6;futsu-chuo:1:1.0,bunri:0:1.0,junchu-kosoku:0:5.2.0,kinkyu-ippan:1:2.5.1,chugata-omo:1:4.0.3,kenin30:2:0.2.3,chugata-jin:0:5.1.3,ogata-bike:0:5.4.1;bike-kosoku:0:2.0,futsu-chuo:0:1.6,gentsuki-seikatsu:2:0.6.4,bunri-gentsuki:0:3.4.5,kinkyu-kosoku:1:5.0.3,gentsuki-kenin:1:1.2.5,kenin40:2:3.0.6,chugata-jin:1:5.3.2"; // 過去の日の問題の印（変わったら過去の日の問題が変わった印。種類・言い方は足すだけでも変わる）
@@ -151,7 +152,7 @@ async function newPage(w = 390, ctx) {
   await p.goto(url); await p.waitForTimeout(200);
   return p;
 }
-const closeHow = async (p) => { if (await p.locator("#howto[open]").count()) await p.click("#howto-ok"); };
+const closeHow = async (p) => { await firstClose(p); };
 const ansIdx = (p) => p.evaluate(() => { const c = __nm.cur(); return c.P.opts.indexOf(c.P.ans); });
 const wrongIdx = (p) => p.evaluate(() => { const c = __nm.cur(); return c.P.opts.findIndex((o) => o !== c.P.ans && !c.wrong.includes(o)); });
 const mem = (p) => p.evaluate(() => JSON.parse(localStorage.getItem("hts-v1") || "{}"));
@@ -167,7 +168,7 @@ async function solve(p, { wrong = 0 } = {}) {
 try {
   // はじめて：遊び方が出る・文字の大きさ
   const p = await newPage();
-  check("はじめて開くと遊び方が出る", await p.locator("#howto[open]").count() === 1);
+  check("はじめて開くと遊び方が出る", await p.locator("#core-coach").count() === 1);
   { const c = await browser.newContext(); const r = await c.newPage(); await r.goto(url); await r.waitForTimeout(200); let again = 0;
     for (let i = 0; i < 10; i++) { await r.evaluate(() => localStorage.clear()); await r.reload(); await r.waitForTimeout(200); await r.keyboard.press("Escape"); await r.reload(); await r.waitForTimeout(200); again += await r.locator("#howto[open]").count(); }
     check("遊び方を Esc で閉じてすぐ読み直しても出ない（10回）", again === 0);
@@ -177,9 +178,9 @@ try {
       if (v === null || v > 4) big.push(`${w}x${h}:${v === null ? "題なし" : "+" + Math.round(v) + "px"}`); }
     check("ホームの題は縦長の画面でも縦に伸びない（820×1180・390×844・1280×800）", big.length === 0, big.join(" ")); await c.close(); }
     await r.evaluate(() => localStorage.clear()); await r.reload(); await r.waitForTimeout(200);
-    check("「わかった」を押したその場で「見た」が残る", await r.locator("#howto-ok").evaluate((b) => { b.click(); return Object.keys(localStorage).some((k) => { try { return JSON.parse(localStorage.getItem(k)).tut === true; } catch { return false; } }); }));
+    check("はじめての練習が始まったその場で「見た」が残る", await r.evaluate(() => { return Object.keys(localStorage).some((k) => { try { return JSON.parse(localStorage.getItem(k)).tut === true; } catch { return false; } }); })); await firstClose(r);
     await r.reload(); await r.waitForTimeout(200); check("遊び方を「わかった」で閉じてすぐ読み直しても出ない（その場で残す）", await r.locator("#howto[open]").count() === 0); await c.close(); }
-  await p.click("#howto-ok");
+  await firstClose(p);
   check("文字の大きさ：はじめは「大きい」（19px）", await p.evaluate(() => getComputedStyle(document.documentElement).fontSize) === "19px");
   await p.click('.fsrow button[data-fs="3"]');
   await p.reload(); await p.waitForTimeout(150);
@@ -542,7 +543,7 @@ try {
 // 引き継ぎコード（shared-workflows template/qa/transfer-check.mjs）
 try {
   const sample = { "hts-v1": JSON.stringify({ v: 1, tut: true, days: { "2026-11-13": { m: [0, 1, 0, 0, 2], k: ["futsu-chuo", "gentsuki-chuo", "bus-kosoku", "seikatsu", "futsu-kosoku"] } }, hdays: {}, adays: {}, dex: { "futsu-chuo": 1, senyo: 1, kenin40: 1, "bus-kosoku": 1, sanrin: 1 }, runs: {}, kofi: {}, ach: {}, ebest: 7, t: 1 }), "hts-fs": "3", "hts-depth": JSON.stringify({ v: 1, rv: { "futsu-chuo|x1": { s: 1, due: "2026-11-20", t: 5 } } }) }; // 復習の記録も引き継ぐかを見る（CodeRabbit shindo-yomi#1）
-  await checkTransfer({ browser, url, game: "hotei-sokudo", sample, check, open: async (pg) => { if (await pg.locator("#howto[open]").count()) await pg.click("#howto-ok"); } });
+  await checkTransfer({ browser, url, game: "hotei-sokudo", sample, check, open: async (pg) => { await firstClose(pg); } });
 } catch (e) { check("引き継ぎの検査が最後まで動く", false, e.message.split("\n")[0]); }
 await browser.close();
 server.close();
